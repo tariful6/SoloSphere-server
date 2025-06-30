@@ -80,13 +80,13 @@ async function run() {
     })
 
 
-    // job related api -----------------------------
-
+    // get all job data from db -----------------------------
     app.get('/jobs', async(req, res)=>{
         const result = await jobCollection.find().toArray();
         res.send(result)
     })
 
+    // get a single job data from db -----------------------------
     app.get('/jobs/:id', async(req, res)=>{
         const id = req.params.id;
         const filter = {_id : new ObjectId(id)}
@@ -94,15 +94,25 @@ async function run() {
         res.send(result)
     })
 
-
+    // Save a job data in db ------------------------
     app.post('/jobs', async(req, res)=>{
         const jobData = req.body;
         const result = await jobCollection.insertOne(jobData);
         res.send(result)
     })
 
+    // Save a bid data in db -----------------------
     app.post('/bid', async(req, res)=>{
         const bidData = req.body;
+    // check is data is a duplicate request or naot ---
+        const query = {
+            email: bidData.email,
+            jobId : bidData.jobId,
+        }
+        const alreadyApplied = await bidCollection.findOne(query)
+        if(alreadyApplied){
+            return res.status(400).send('you have already placed a bid in this job')
+        }        
         const result = await bidCollection.insertOne(bidData);
         res.send(result)
     })
@@ -127,7 +137,7 @@ async function run() {
         res.send(result)
     })
 
-    app.put('/job/:id', verifyToken, async(req, res)=>{
+    app.put('/job/:id', async(req, res)=>{
         const id = req.params.id;
         const jobData = req.body;
         const query = {_id: new ObjectId(id)}
@@ -172,9 +182,25 @@ async function run() {
     }
     const result = await bidCollection.updateOne(query, updateDoc);
     res.send(result)
-
-
   })
+
+
+
+  
+   // get all job data from db for pagination-----------------------------
+   app.get('/allJobs', async(req, res)=>{
+       const size = parseInt(req.query.size)
+       const page = parseInt(req.query.page) - 1;
+       const result = await jobCollection.find().skip(page * size).limit(size).toArray();
+       res.send(result)
+   })
+
+
+   // get all job data from db for data count -----------------------------
+   app.get('/jobsCount', async(req, res)=>{
+       const count = await jobCollection.countDocuments()
+       res.send({count})
+   })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

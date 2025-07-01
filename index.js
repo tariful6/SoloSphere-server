@@ -191,14 +191,32 @@ async function run() {
    app.get('/allJobs', async(req, res)=>{
        const size = parseInt(req.query.size)
        const page = parseInt(req.query.page) - 1;
-       const result = await jobCollection.find().skip(page * size).limit(size).toArray();
+       const filter = req.query.filter;
+       const sort = req.query.sort;
+       const search = req.query.search;
+
+       let query = {
+         job_title : {$regex : search, $options : 'i'}
+       }
+       if(filter){ query.category = filter}
+
+       let options = {}
+       if(sort){ options = {sort : { deadline : sort === 'asc' ? 1 : -1}}}
+
+       const result = await jobCollection.find(query, options).skip(page * size).limit(size).toArray();
        res.send(result)
    })
 
 
    // get all job data from db for data count -----------------------------
    app.get('/jobsCount', async(req, res)=>{
-       const count = await jobCollection.countDocuments()
+       const filter = req.query.filter;
+       const search = req.query.search;
+       let query = {
+         job_title : {$regex : search, $options : 'i'}
+       }
+       if(filter){ query.category = filter}  // alternative -- if(filter){ query = {category : filter}}
+       const count = await jobCollection.countDocuments(query)
        res.send({count})
    })
 
